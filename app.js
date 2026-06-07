@@ -8,7 +8,7 @@ let appState = {
 };
 
 // --- Authentication State ---
-const GOOGLE_CLIENT_ID = 'YOUR_CLIENT_ID_HERE.apps.googleusercontent.com'; // Paste your Client ID here
+const GOOGLE_CLIENT_ID = '815722396060-85vjec9jud97tnnmse02sgv5avomk31v.apps.googleusercontent.com'; // Paste your Client ID here
 let tokenClient;
 let driveAccessToken = sessionStorage.getItem('opsPortalDriveToken') || null;
 
