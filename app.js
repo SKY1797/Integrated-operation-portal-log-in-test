@@ -7,6 +7,37 @@ let appState = {
     electricalUnit: null
 };
 
+// --- Authentication State ---
+const GOOGLE_CLIENT_ID = 'YOUR_CLIENT_ID_HERE.apps.googleusercontent.com'; // Paste your Client ID here
+let tokenClient;
+let driveAccessToken = sessionStorage.getItem('opsPortalDriveToken') || null;
+
+// Function to handle Google Login
+function handleGoogleLogin() {
+    if (!tokenClient) {
+        tokenClient = google.accounts.oauth2.initTokenClient({
+            client_id: GOOGLE_CLIENT_ID,
+            scope: 'https://www.googleapis.com/auth/drive.readonly',
+            callback: (tokenResponse) => {
+                if (tokenResponse && tokenResponse.access_token) {
+                    driveAccessToken = tokenResponse.access_token;
+                    // Save token to session storage so it persists across refreshes
+                    sessionStorage.setItem('opsPortalDriveToken', driveAccessToken);
+                    // Re-render the app to show the documents
+                    renderApp(); 
+                }
+            },
+        });
+    }
+    tokenClient.requestAccessToken();
+}
+
+function handleGoogleLogout() {
+    driveAccessToken = null;
+    sessionStorage.removeItem('opsPortalDriveToken');
+    updateState({ module: 'HOME' });
+}
+
 // Safe access for static modules
 const elecData = typeof electricalData !== 'undefined' ? electricalData : {};
 const protData = typeof protectionData !== 'undefined' ? protectionData : {};
@@ -419,6 +450,34 @@ function setupProtSearch() {
 function formatName(n) { return n.replace(/\.[^/.]+$/, ""); }
 
 function renderDocs() {
+
+    // 0.1 AUTHENTICATION GATEKEEPER
+    if (!driveAccessToken) {
+        return `
+            <div class="page-head">
+                <h2 class="page-title font-mono">Operation Documents</h2>
+                <p class="page-subtitle">Secure Access Verification</p>
+            </div>
+            <div style="text-align:center; padding: 4rem 1rem; display: flex; flex-direction: column; align-items: center;">
+                <div style="background: color-mix(in srgb, var(--module-docs) 15%, transparent); padding: 1.5rem; border-radius: 50%; margin-bottom: 1.5rem;">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--module-docs)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                    </svg>
+                </div>
+                <h3 style="margin-bottom: 0.5rem; color: var(--foreground);">Restricted Area</h3>
+                <p style="margin-bottom: 2rem; color: var(--muted-foreground); max-width: 400px;">
+                    These documents are restricted to authorized operation personnel. Please sign in with your authorized Google account to continue.
+                </p>
+                <button class="ui-card" style="padding: 1rem 2rem; border-color: var(--module-docs); background: var(--card); cursor: pointer;" onclick="handleGoogleLogin()">
+                    <div style="display:flex; align-items:center; gap:0.9rem;">
+                        <span class="card-title font-mono" style="color: var(--module-docs);">Sign in with Google</span>
+                    </div>
+                </button>
+            </div>
+        `;
+    }
+    
     // 1. Loading State Check (Only shown if completely empty)
     if (isDocsLoading && docData.length === 0) {
         return `
